@@ -61,6 +61,7 @@ App = {
     },
 
     bindEvents: function() {
+
         document.getElementById('new-airline-form').onsubmit = (event) => {
             event.preventDefault();
             App.newAirlineAddress = document.getElementById('new-airline-address').value;
@@ -68,6 +69,16 @@ App = {
             console.log(`registerAirline('${App.newAirlineName}', '${App.newAirlineAddress}', {from: '${App.metamaskAccountID}'});`);
             App.handleButtonClick(event, 1);
         };
+
+        document.getElementById('register-flight-form').onsubmit = (event) => {
+            event.preventDefault();
+            App.newFlightNumber = document.getElementById('register-flight-number').value;
+            let time = document.getElementById('register-flight-time').value;
+            App.newFlightTime = Math.floor(Date.parse(time) / 1000);
+            console.log(`registerFlight('${App.newFlightNumber}', '${App.newFlightTime}', {from: '${App.metamaskAccountID}'});`);
+            App.handleButtonClick(event, 2);
+        };
+
         document.getElementById('fetch-flight-form').onsubmit = (event) => {
             event.preventDefault();
             App.fetchFlightAddress = document.getElementById('fetch-flight-address').value;
@@ -75,7 +86,15 @@ App = {
             let time = document.getElementById('fetch-flight-time').value;
             App.fetchFlightTime = Math.floor(Date.parse(time) / 1000);
             console.log(`fetchFlightStatus('${App.fetchFlightAddress}', '${App.fetchFlightNumber}', '${App.fetchFlightTime}', {from: '${App.metamaskAccountID}'});`);
-            App.handleButtonClick(event, 2);
+            App.handleButtonClick(event, 3);
+        };
+
+        document.getElementById('vote-airline-form').onsubmit = (event) => {
+            event.preventDefault();
+            App.voteAirlineAddress = document.getElementById('vote-airline-address').value;
+            App.voteAirlineApprove = !document.getElementById('vote-airline-no').checked;
+            console.log(`voteForAirline('${App.voteAirlineAddress}', '${App.voteAirlineApprove}', {from: '${App.metamaskAccountID}'});`);
+            App.handleButtonClick(event, 4);
         };
     },
 
@@ -84,9 +103,16 @@ App = {
         App.getMetaMaskAccountID();
         switch(idx) {
             case 1:
-                return await App.registerAirline(event);
+                await App.registerAirline(event);
+                break;
             case 2:
-                return await App.fetchFlightStatus(event);
+                await App.registerFlight(event);
+                break;
+            case 3:
+                await App.fetchFlightStatus(event);
+                break;
+            case 4:
+                await App.voteForAirline(event);
         }
     },
 
@@ -102,6 +128,46 @@ App = {
             console.log('registerAirline SUCCESS:', result);
         }).catch(function(err) {
             console.log('registerAirline FAILED:', err.message);
+        });
+    },
+
+    fundAirline: function() {
+        App.contracts.FlightSurety.deployed().then(function(instance) {
+            return instance.fund({ from: App.metamaskAccountID, value: web3.utils.toWei('10', 'ether') });
+        }).then(function(result) {
+            console.log('fundAirline SUCCESS:', result);
+        }).catch(function(err) {
+            console.log('fundAirline FAILED:', err.message);
+        });
+    },
+
+    voteForAirline: function(event) {
+        event.preventDefault();
+        App.contracts.FlightSurety.deployed().then(function(instance) {
+            return instance.vote(
+                App.voteAirlineAddress,
+                App.voteAirlineApprove,
+                { from: App.metamaskAccountID }
+            );
+        }).then(function(result) {
+            console.log('voteForAirline SUCCESS:', result);
+        }).catch(function(err) {
+            console.log('voteForAirline FAILED:', err.message);
+        });
+    },
+
+    registerFlight: function(event) {
+        event.preventDefault();
+        App.contracts.FlightSurety.deployed().then(function(instance) {
+            return instance.registerFlight(
+                App.newFlightNumber,
+                App.newFlightTime,
+                { from: App.metamaskAccountID }
+            );
+        }).then(function(result) {
+            console.log('registerFlight SUCCESS:', result);
+        }).catch(function(err) {
+            console.log('registerFlight FAILED:', err.message);
         });
     },
 

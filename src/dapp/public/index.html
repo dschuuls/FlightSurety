@@ -26,40 +26,84 @@
 					<div id="main" class="alt">
 
 						<!-- One -->
-							<section id="one">
-								<div class="inner">
-									<header class="major">
-										<h1>Airlines</h1>
-									</header>
-									<h3>Register a new airline</h3>
+						<section id="one">
+							<div class="inner">
 
-									<form method="post" action="#" id="new-airline-form">
-										<div class="row gtr-uniform">
-											<div class="col-6 col-12-xsmall">
-												<input type="text" name="new-airline-name" id="new-airline-name" value="" placeholder="Name" />
-											</div>
-											<div class="col-6 col-12-xsmall">
-												<input type="text" name="new-airline-address" id="new-airline-address" value="" placeholder="Address" />
-											</div>
-											<!-- Break -->
-											<div class="col-12">
-												<ul class="actions">
-													<li><input type="submit" value="Register" class="primary" /></li>
-												</ul>
-											</div>
+								<header class="major">
+									<h1>Airlines</h1>
+								</header>
+
+								<h3>Register a new airline</h3>
+								<form method="post" action="#" id="new-airline-form">
+									<div class="row gtr-uniform">
+										<div class="col-6 col-12-xsmall">
+											<input type="text" name="new-airline-name" id="new-airline-name" value="" placeholder="Name" />
 										</div>
-									</form>
-								</div>
-							</section>
+										<div class="col-6 col-12-xsmall">
+											<input type="text" name="new-airline-address" id="new-airline-address" value="" placeholder="Address" />
+										</div>
+										<!-- Break -->
+										<div class="col-12">
+											<ul class="actions">
+												<li><input type="submit" value="Register" class="primary" /></li>
+											</ul>
+										</div>
+									</div>
+								</form>
+
+								<h3>Vote for an airline</h3>
+								<form method="post" action="#" id="vote-airline-form">
+									<div class="row gtr-uniform">
+										<div class="col-6 col-12-xsmall">
+											<input type="text" name="vote-airline-address" id="vote-airline-address" value="" placeholder="Address" />
+										</div>
+										<div class="col-6 col-12-xsmall">
+											<input type="checkbox" id="vote-airline-no" name="vote-airline-no">
+											<label for="vote-airline-no">Check to vote NO</label>
+										</div>
+										<!-- Break -->
+										<div class="col-12">
+											<ul class="actions">
+												<li><input type="submit" value="Vote" class="primary" /></li>
+											</ul>
+										</div>
+									</div>
+								</form>
+
+								<h3>Fund your airline</h3>
+								<a href="#" class="button primary" onclick="App.fundAirline()">Fund</a>
+
+							</div>
+						</section>
 
 						<!-- Two -->
 						<section id="two">
 							<div class="inner">
+
 								<header class="major">
 									<h1>Flights</h1>
 								</header>
-								<h3>Flight info fetch request</h3>
 
+								<h3>Register a future flight for insuring</h3>
+								<form method="post" action="#" id="register-flight-form">
+									<div class="row gtr-uniform">
+										<div class="col-6 col-12-xsmall">
+											<input type="text" name="register-flight-number" id="register-flight-number" value="" placeholder="Flight number" />
+										</div>
+										<div class="col-6 col-12-xsmall">
+											<input type="text" name="register-flight-time" id="register-flight-time" value="" placeholder="Date and time *" />
+											* e.g. 2021-07-20 13:30
+										</div>
+										<!-- Break -->
+										<div class="col-12">
+											<ul class="actions">
+												<li><input type="submit" value="Register" class="primary" /></li>
+											</ul>
+										</div>
+									</div>
+								</form>
+
+								<h3>Generate a request for oracles to fetch flight information</h3>
 								<form method="post" action="#" id="fetch-flight-form">
 									<div class="row gtr-uniform">
 										<div class="col-4 col-12-xsmall">
@@ -75,11 +119,51 @@
 										<!-- Break -->
 										<div class="col-12">
 											<ul class="actions">
-												<li><input type="submit" value="Request" class="primary" /></li>
+												<li><input type="submit" value="Generate" class="primary" /></li>
 											</ul>
 										</div>
 									</div>
 								</form>
+
+							</div>
+						</section>
+
+						<!-- Three -->
+						<section id="three">
+							<div class="inner">
+
+								<header class="major">
+									<h1>Insurance</h1>
+								</header>
+
+								<h3>Buy flight insurance</h3>
+								<form method="post" action="#" id="buy-insurance-form">
+									<div class="row gtr-uniform">
+										<div class="col-3 col-12-xsmall">
+											<input type="text" name="buy-insurance-address" id="buy-insurance-address" value="" placeholder="Airline address" />
+										</div>
+										<div class="col-3 col-12-xsmall">
+											<input type="text" name="buy-insurance-number" id="buy-insurance-number" value="" placeholder="Flight number" />
+										</div>
+										<div class="col-3 col-12-xsmall">
+											<input type="text" name="buy-insurance-time" id="buy-insurance-time" value="" placeholder="Date and time *" />
+											* e.g. 2021-07-20 13:30
+										</div>
+										<div class="col-3 col-12-xsmall">
+											<input type="text" name="buy-insurance-amount" id="buy-insurance-amount" value="" placeholder="Amount" />
+										</div>
+										<!-- Break -->
+										<div class="col-12">
+											<ul class="actions">
+												<li><input type="submit" value="Buy" class="primary" /></li>
+											</ul>
+										</div>
+									</div>
+								</form>
+
+								<h3>Withdraw after delays</h3>
+								<a href="#" class="button primary" onclick="App.withdraw()">Withdraw</a>
+
 							</div>
 						</section>
 

@@ -64,6 +64,14 @@ contract FlightSuretyData is Ownable, Pausable, AccessControl {
 
     bytes32 public constant AUTHORIZED_CALLER = keccak256("AUTHORIZED_CALLER");
 
+    // Flight status codes
+    uint8 private constant STATUS_CODE_UNKNOWN = 0;
+    uint8 private constant STATUS_CODE_ON_TIME = 10;
+    uint8 private constant STATUS_CODE_LATE_AIRLINE = 20;
+    uint8 private constant STATUS_CODE_LATE_WEATHER = 30;
+    uint8 private constant STATUS_CODE_LATE_TECHNICAL = 40;
+    uint8 private constant STATUS_CODE_LATE_OTHER = 50;
+
     /********************************************************************************************/
     /*                                       EVENTS                                             */
     /********************************************************************************************/
@@ -107,15 +115,15 @@ contract FlightSuretyData is Ownable, Pausable, AccessControl {
     /********************************************************************************************/
 
     function authorizeCaller(address adr)
-    public
-    onlyOwner()
+        public
+        onlyOwner()
     {
         _setupRole(AUTHORIZED_CALLER, adr);
     }
 
     function setOperatingStatus(bool operational)
-    public
-    onlyOwner()
+        public
+        onlyOwner()
     {
         if (operational) {
             require(paused(), "Contract needs to be paused to set it back to operational");
@@ -127,9 +135,9 @@ contract FlightSuretyData is Ownable, Pausable, AccessControl {
     }
 
     function isOperational()
-    public
-    view
-    returns (bool)
+        public
+        view
+        returns (bool)
     {
         return !paused();
     }
@@ -143,9 +151,9 @@ contract FlightSuretyData is Ownable, Pausable, AccessControl {
         string memory flight,
         uint256 timestamp
     )
-    pure
-    internal
-    returns (bytes32)
+        pure
+        internal
+        returns (bytes32)
     {
         return keccak256(abi.encodePacked(airline, flight, timestamp));
     }
@@ -154,9 +162,9 @@ contract FlightSuretyData is Ownable, Pausable, AccessControl {
         address senderAdr,
         address airlineAdr
     )
-    pure
-    internal
-    returns (bytes32)
+        pure
+        internal
+        returns (bytes32)
     {
         return keccak256(abi.encodePacked(senderAdr, airlineAdr));
     }
@@ -166,25 +174,34 @@ contract FlightSuretyData is Ownable, Pausable, AccessControl {
     /********************************************************************************************/
 
     function isAirline(address adr)
-    public
-    view
-    returns (bool)
+        public
+        view
+        returns (bool)
     {
         return airlines[adr].registered > 0;
     }
 
     function isFunded(address adr)
-    public
-    view
-    returns (bool)
+        public
+        view
+        returns (bool)
     {
         return airlines[adr].state == State.Funded;
     }
 
+    function isRegisteredFlight(address airlineAdr, string memory flight, uint256 timestamp)
+        public
+        view
+        returns (bool)
+    {
+        bytes32 key = getFlightKey(airlineAdr, flight, timestamp);
+        return flights[key].isRegistered;
+    }
+
     function approvedAirlinesCount()
-    public
-    view
-    returns (uint256)
+        public
+        view
+        returns (uint256)
     {
         return numApprovedAirlines.current();
     }
@@ -194,14 +211,14 @@ contract FlightSuretyData is Ownable, Pausable, AccessControl {
      *      Can only be called from FlightSuretyApp contract
      *
      */
-    function addAirline(address adr, string memory name, State state)
-    external
-    onlyAuthorized()
+    function registerAirline(address adr, string memory name, State state)
+        external
+        onlyAuthorized()
     {
         airlines[adr] = Airline({
-        name: name,
-        state: state,
-        registered: block.timestamp
+            name: name,
+            state: state,
+            registered: block.timestamp
         });
 
         if (state == State.Approved) {
@@ -217,8 +234,8 @@ contract FlightSuretyData is Ownable, Pausable, AccessControl {
      *
      */
     function buy()
-    external
-    payable
+        external
+        payable
     {
 
     }
@@ -227,8 +244,8 @@ contract FlightSuretyData is Ownable, Pausable, AccessControl {
      *  @dev Credits payouts to insurees
     */
     function creditInsurees()
-    external
-    pure
+        external
+        pure
     {
 
     }
@@ -238,8 +255,8 @@ contract FlightSuretyData is Ownable, Pausable, AccessControl {
      *
     */
     function pay()
-    external
-    pure
+        external
+        pure
     {
 
     }
@@ -250,7 +267,9 @@ contract FlightSuretyData is Ownable, Pausable, AccessControl {
      *
      */
     function fund(address adr)
-    public
+        external
+        onlyAuthorized()
+        requireIsOperational()
     {
         require(isAirline(adr), "only airlines can set up a fund");
         airlines[adr].state = State.Funded;
@@ -261,7 +280,9 @@ contract FlightSuretyData is Ownable, Pausable, AccessControl {
         address airlineAdr,
         bool approve
     )
-    public
+        external
+        onlyAuthorized()
+        requireIsOperational()
     {
         Voting storage voting = votings[airlineAdr];
         require(voting.openForVotes, "this voting is not open");
@@ -272,8 +293,29 @@ contract FlightSuretyData is Ownable, Pausable, AccessControl {
         checkApproval(airlineAdr);
     }
 
+    function registerFlight(
+        address airlineAdr,
+        string memory flight,
+        uint256 timestamp
+    )
+        external
+        onlyAuthorized()
+        requireIsOperational()
+    {
+        bytes32 key = getFlightKey(airlineAdr, flight, timestamp);
+        require(!flights[key].isRegistered, "this flight is already registered");
+
+        flights[key] = Flight({
+            isRegistered: true,
+            statusCode: STATUS_CODE_UNKNOWN,
+            updatedTimestamp: block.timestamp,
+            airline: airlineAdr
+        });
+    }
+
     function checkApproval(address airlineAdr)
-    private
+        private
+        requireIsOperational()
     {
         Voting storage voting = votings[airlineAdr];
         uint numVotes = voting.ballots.length;

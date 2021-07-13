@@ -50,14 +50,6 @@ contract FlightSuretyApp is Ownable, Pausable {
     /*                                       CONSTANTS                                          */
     /********************************************************************************************/
 
-    // Flight status codes
-    uint8 private constant STATUS_CODE_UNKNOWN = 0;
-    uint8 private constant STATUS_CODE_ON_TIME = 10;
-    uint8 private constant STATUS_CODE_LATE_AIRLINE = 20;
-    uint8 private constant STATUS_CODE_LATE_WEATHER = 30;
-    uint8 private constant STATUS_CODE_LATE_TECHNICAL = 40;
-    uint8 private constant STATUS_CODE_LATE_OTHER = 50;
-
     // Fee to be paid when registering oracle
     uint256 public constant REGISTRATION_FEE = 1 ether;
 
@@ -94,6 +86,11 @@ contract FlightSuretyApp is Ownable, Pausable {
 
     modifier requireIsOperational() {
         require(isOperational(), "Contract is not operational at the moment");
+        _;
+    }
+
+    modifier requireIsAirline() {
+        require(dataContract.isAirline(msg.sender), "Caller needs to be an airline");
         _;
     }
 
@@ -143,17 +140,17 @@ contract FlightSuretyApp is Ownable, Pausable {
     }
 
     function isOperational()
-    public
-    view
-    returns (bool)
+        public
+        view
+        returns (bool)
     {
         return !paused() && !dataContract.paused();
     }
 
     function setTestingMode(bool active)
-    public
-    onlyOwner()
-    requireIsOperational()
+        public
+        onlyOwner()
+        requireIsOperational()
     {
 
     }
@@ -167,9 +164,9 @@ contract FlightSuretyApp is Ownable, Pausable {
         string memory flight,
         uint256 timestamp
     )
-    pure
-    internal
-    returns (bytes32)
+        pure
+        internal
+        returns (bytes32)
     {
         return keccak256(abi.encodePacked(airline, flight, timestamp));
     }
@@ -218,14 +215,14 @@ contract FlightSuretyApp is Ownable, Pausable {
      *
      */
     function registerAirline(address adr, string memory name)
-    external
-    allowedToRegister()
-    returns (FlightSuretyData.State)
+        external
+        allowedToRegister()
+        returns (FlightSuretyData.State)
     {
         require(!dataContract.isAirline(adr), "Can't register an airline twice");
         bool needsApproval = dataContract.approvedAirlinesCount() >= NO_NEED_APPROVAL;
         FlightSuretyData.State state = needsApproval ? FlightSuretyData.State.Queued : FlightSuretyData.State.Approved;
-        dataContract.addAirline(adr, name, state);
+        dataContract.registerAirline(adr, name, state);
         return state;
     }
 
@@ -235,29 +232,35 @@ contract FlightSuretyApp is Ownable, Pausable {
      *
      */
     function fund()
-    public
-    payable
-    enoughForFunding()
+        public
+        payable
+        requireIsOperational()
+        requireIsAirline()
+        enoughForFunding()
     {
         dataContract.fund(msg.sender);
     }
 
     function vote(address airlineAdr, bool approve)
-    public
-    eligibleToVote()
+        public
+        requireIsOperational()
+        requireIsAirline()
+        eligibleToVote()
     {
         dataContract.vote(msg.sender, airlineAdr, approve);
     }
 
     /**
-     * @dev Register a future flight for insuring.
+     * @dev Register a future flight for insuring
      *
      */
-    function registerFlight()
-    external
-    pure
+    function registerFlight(string memory flight, uint256 timestamp)
+        public
+        requireIsOperational()
+        requireIsAirline()
     {
-
+        require(dataContract.isFunded(msg.sender), "only funded airlines can register flights");
+        dataContract.registerFlight(msg.sender, flight, timestamp);
     }
 
     /**
@@ -286,6 +289,8 @@ contract FlightSuretyApp is Ownable, Pausable {
     )
     external
     {
+        require(dataContract.isRegisteredFlight(airline, flight, timestamp));
+
         uint8 index = getRandomIndex(msg.sender);
 
         // Generate a unique key for storing the request
@@ -328,10 +333,10 @@ contract FlightSuretyApp is Ownable, Pausable {
         return oracles[msg.sender].indexes;
     }
 
-    // Called by oracle when a response is available to an outstanding request
+    // Called by oracle when a response is available to an outstanding request.
     // For the response to be accepted, there must be a pending request that is open
-    // and matches one of the three Indexes randomly assigned to the oracle at the
-    // time of registration (i.e. uninvited oracles are not welcome)
+    // and matches one of the three indexes randomly assigned to the oracle at the
+    // time of registration (i.e. uninvited oracles are not welcome).
     function submitOracleResponse
     (
         uint8 index,
