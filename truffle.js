@@ -1,19 +1,20 @@
-var HDWalletProvider = require("truffle-hdwallet-provider");
+var HDWalletProvider = require("@truffle/hdwallet-provider");
 var mnemonic = "candy maple cake sugar pudding cream honey rich smooth crumble sweet treat";
 
 module.exports = {
   networks: {
-    development: {
+    udacity: {
       provider: function() {
-        return new HDWalletProvider(mnemonic, "http://127.0.0.1:8545/", 0, 50);
+        return new HDWalletProvider(mnemonic, "http://127.0.0.1:8545", 0, 100);
       },
       network_id: '*',
-      gas: 9999999
+      gas: 6721975, // gas limit
+      gasPrice: 20000000000
     }
   },
   compilers: {
     solc: {
-      version: "^0.4.24"
+      version: "^0.8.6"
     }
   }
 };

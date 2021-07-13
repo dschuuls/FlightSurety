@@ -64,3 +64,6 @@ typings/
 .env
 
 ~$*.pptx
+
+.idea
+package-lock.json
