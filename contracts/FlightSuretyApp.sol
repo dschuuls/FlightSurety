@@ -43,7 +43,7 @@ contract FlightSuretyApp is Ownable, Pausable {
     mapping(address => Oracle) private oracles;
 
     // Track all oracle responses
-    // Key = hash(index, flight, timestamp)
+    // Key = hash(index, airline, flight, timestamp)
     mapping(bytes32 => ResponseInfo) private oracleResponses;
 
     /********************************************************************************************/
@@ -54,13 +54,21 @@ contract FlightSuretyApp is Ownable, Pausable {
     uint256 public constant REGISTRATION_FEE = 1 ether;
 
     // Number of oracles that must respond for valid status
-    uint256 private constant MIN_RESPONSES = 3;
+    uint256 private constant MIN_RESPONSES = 5;
 
     // Number of airlines that can be registered without voting
     uint256 private constant NO_NEED_APPROVAL = 4;
 
     // Minimum ETH to set up funding by an airline
     uint256 public constant MINIMUM_FUNDING = 10 ether;
+
+    // Flight status codes
+    uint8 private constant STATUS_CODE_UNKNOWN = 0;
+    uint8 private constant STATUS_CODE_ON_TIME = 10;
+    uint8 private constant STATUS_CODE_LATE_AIRLINE = 20;
+    uint8 private constant STATUS_CODE_LATE_WEATHER = 30;
+    uint8 private constant STATUS_CODE_LATE_TECHNICAL = 40;
+    uint8 private constant STATUS_CODE_LATE_OTHER = 50;
 
     /********************************************************************************************/
     /*                                       EVENTS                                             */
@@ -89,23 +97,9 @@ contract FlightSuretyApp is Ownable, Pausable {
         _;
     }
 
-    modifier requireIsAirline() {
-        require(dataContract.isAirline(msg.sender), "Caller needs to be an airline");
-        _;
-    }
-
-    modifier allowedToRegister() {
-        require(msg.sender == owner() || dataContract.isFunded(msg.sender), "Only contract owner and funded airlines are allowed to register a new airline");
-        _;
-    }
-
-    modifier eligibleToVote() {
-        require(dataContract.isFunded(msg.sender), "Only funded airlines are allowed to vote for new airlines");
-        _;
-    }
-
-    modifier enoughForFunding() {
-        require(msg.value >= MINIMUM_FUNDING, "Must pay enough ETH to set up the funding");
+    modifier requireIsAirline(bool funded) {
+        require(dataContract.isAirline(msg.sender), "need to be an airline");
+        if (funded) require(dataContract.isFunded(msg.sender), "need to be a funded airline");
         _;
     }
 
@@ -177,29 +171,28 @@ contract FlightSuretyApp is Ownable, Pausable {
         returns (uint8[3] memory)
     {
         uint8[3] memory indexes;
+
         indexes[0] = getRandomIndex(account);
 
-        indexes[1] = indexes[0];
-        while (indexes[1] == indexes[0]) {
+        do {
             indexes[1] = getRandomIndex(account);
-        }
+        } while (indexes[1] == indexes[0]);
 
-        indexes[2] = indexes[1];
-        while ((indexes[2] == indexes[0]) || (indexes[2] == indexes[1])) {
+        do {
             indexes[2] = getRandomIndex(account);
-        }
+        } while ((indexes[2] == indexes[0]) || (indexes[2] == indexes[1]));
 
         return indexes;
     }
 
-    // Returns array of three non-duplicating integers from 0-9
+    // Returns integers from 0-9
     function getRandomIndex(address account)
         internal
         returns (uint8)
     {
         uint8 maxValue = 10;
         // Pseudo random number...the incrementing nonce adds variation
-        uint8 random = uint8(uint256(keccak256(abi.encodePacked(blockhash(block.number - nonce++), account))) % maxValue);
+        uint8 random = uint8(uint256(keccak256(abi.encodePacked(block.timestamp, account, ++nonce))) % maxValue);
         if (nonce > 250) nonce = 0;
         return random;
     }
@@ -208,21 +201,22 @@ contract FlightSuretyApp is Ownable, Pausable {
     /*                                     SMART CONTRACT FUNCTIONS                             */
     /********************************************************************************************/
 
-    // region AIRLINES AND FLIGHTS
+    // region AIRLINES
 
     /**
      * @dev Add an airline to the registration queue
      *
      */
-    function registerAirline(address adr, string memory name)
+    function registerAirline(address airline, string memory name)
         external
-        allowedToRegister()
+        requireIsOperational()
         returns (FlightSuretyData.State)
     {
-        require(!dataContract.isAirline(adr), "Can't register an airline twice");
+        require(msg.sender == owner() || dataContract.isFunded(msg.sender), "need to be contract owner or funded airline");
+        require(!dataContract.isAirline(airline), "cannot register airline twice");
         bool needsApproval = dataContract.approvedAirlinesCount() >= NO_NEED_APPROVAL;
         FlightSuretyData.State state = needsApproval ? FlightSuretyData.State.Queued : FlightSuretyData.State.Approved;
-        dataContract.registerAirline(adr, name, state);
+        dataContract.registerAirline(airline, name, state);
         return state;
     }
 
@@ -231,24 +225,27 @@ contract FlightSuretyApp is Ownable, Pausable {
      *      resulting in insurance payouts, the contract should be self-sustaining
      *
      */
-    function fund()
+    function fundAirline()
         public
         payable
         requireIsOperational()
-        requireIsAirline()
-        enoughForFunding()
+        requireIsAirline(false)
     {
-        dataContract.fund(msg.sender);
+        require(msg.value >= MINIMUM_FUNDING, "must pay enough ETH");
+        dataContract.fundAirline(msg.sender);
     }
 
-    function vote(address airlineAdr, bool approve)
+    function voteForAirline(address airline, bool approve)
         public
         requireIsOperational()
-        requireIsAirline()
-        eligibleToVote()
+        requireIsAirline(true)
     {
-        dataContract.vote(msg.sender, airlineAdr, approve);
+        dataContract.voteForAirline(msg.sender, airline, approve);
     }
+
+    // endregion
+
+    // region FLIGHTS
 
     /**
      * @dev Register a future flight for insuring
@@ -257,9 +254,8 @@ contract FlightSuretyApp is Ownable, Pausable {
     function registerFlight(string memory flight, uint256 timestamp)
         public
         requireIsOperational()
-        requireIsAirline()
+        requireIsAirline(true)
     {
-        require(dataContract.isFunded(msg.sender), "only funded airlines can register flights");
         dataContract.registerFlight(msg.sender, flight, timestamp);
     }
 
@@ -274,10 +270,21 @@ contract FlightSuretyApp is Ownable, Pausable {
         uint256 timestamp,
         uint8 statusCode
     )
-    internal
-    pure
+        internal
+        requireIsOperational()
     {
+        // receiving a STATUS_CODE_UNKNOWN here or the flight's status was changed already, we do nothing
+        if (statusCode == STATUS_CODE_UNKNOWN || dataContract.getFlightStatus(airline, flight, timestamp) != STATUS_CODE_UNKNOWN) return;
 
+        dataContract.updateFlight(airline, flight, timestamp, statusCode);
+
+        if (statusCode == STATUS_CODE_LATE_AIRLINE) {
+            // Insurees will be credited if the delay was caused by the airline...
+            dataContract.creditInsurees(airline, flight, timestamp);
+        } else {
+            // Other causes of the delay will invalidate the policies, no payouts!
+            dataContract.invalidatePolicies(airline, flight, timestamp);
+        }
     }
 
     // Generate a request for oracles to fetch flight information
@@ -289,7 +296,8 @@ contract FlightSuretyApp is Ownable, Pausable {
     )
     external
     {
-        require(dataContract.isRegisteredFlight(airline, flight, timestamp));
+        require(dataContract.isRegisteredFlight(airline, flight, timestamp), "no such flight is registered");
+        require(dataContract.getFlightStatus(airline, flight, timestamp) == STATUS_CODE_UNKNOWN, "this flight's status is already verified");
 
         uint8 index = getRandomIndex(msg.sender);
 
@@ -301,6 +309,39 @@ contract FlightSuretyApp is Ownable, Pausable {
         responseInfo.isOpen = true;
 
         emit OracleRequest(index, airline, flight, timestamp);
+    }
+
+    // endregion
+
+    // region INSURANCE
+
+    /**
+     * @dev Buy insurance for a flight
+     *
+     */
+    function buyInsurance(address airline, string memory flight, uint256 timestamp)
+        external
+        payable
+        requireIsOperational()
+    {
+        require(dataContract.isRegisteredFlight(airline, flight, timestamp), "no such flight is registered");
+        require(dataContract.getFlightStatus(airline, flight, timestamp) == STATUS_CODE_UNKNOWN, "this flight's status is already verified");
+        require(msg.value <= 1 ether, "max insurance purchase is 1 ETH");
+        dataContract.registerInsurance(airline, flight, timestamp, msg.sender, msg.value);
+    }
+
+    /**
+     *  @dev Transfers eligible payout funds to insuree
+     *
+    */
+    function getPayout()
+        external
+        requireIsOperational()
+    {
+        require(dataContract.getAvailableBalance(msg.sender) > 0, "no payout balance available");
+        uint256 payoutAmount = dataContract.getAvailableBalance(msg.sender);
+        dataContract.registerPayout(msg.sender);
+        payable(msg.sender).transfer(payoutAmount);
     }
 
     // endregion
@@ -348,19 +389,16 @@ contract FlightSuretyApp is Ownable, Pausable {
     external
     {
         require((oracles[msg.sender].indexes[0] == index) || (oracles[msg.sender].indexes[1] == index) || (oracles[msg.sender].indexes[2] == index), "Index does not match oracle request");
-
         bytes32 key = keccak256(abi.encodePacked(index, airline, flight, timestamp));
         require(oracleResponses[key].isOpen, "Flight or timestamp do not match oracle request");
-
         oracleResponses[key].responses[statusCode].push(msg.sender);
+        emit OracleReport(airline, flight, timestamp, statusCode);
 
         // Information isn't considered verified until at least MIN_RESPONSES
         // oracles respond with the *** same *** information
-        emit OracleReport(airline, flight, timestamp, statusCode);
         if (oracleResponses[key].responses[statusCode].length >= MIN_RESPONSES) {
-
+            // To whom it may concern
             emit FlightStatusInfo(airline, flight, timestamp, statusCode);
-
             // Handle flight status as appropriate
             processFlightStatus(airline, flight, timestamp, statusCode);
         }
@@ -376,15 +414,13 @@ contract FlightSuretyApp is Ownable, Pausable {
     //        external
     //        payable
     //    {
-    //        // TODO: check if sender is an airline
-    //        // fund();
+    //        fund();
     //    }
     //
     //    receive()
     //        external
     //        payable
     //    {
-    //        // TODO: check if sender is an airline
-    //        // fund();
+    //        fund();
     //    }
 }   

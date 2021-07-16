@@ -37,10 +37,17 @@
 								<form method="post" action="#" id="new-airline-form">
 									<div class="row gtr-uniform">
 										<div class="col-6 col-12-xsmall">
-											<input type="text" name="new-airline-name" id="new-airline-name" value="" placeholder="Name" />
+											<input type="text" name="new-airline-name" id="new-airline-name" value="" placeholder="Airline name" />
 										</div>
 										<div class="col-6 col-12-xsmall">
-											<input type="text" name="new-airline-address" id="new-airline-address" value="" placeholder="Address" />
+											<select name="new-airline-address" id="new-airline-address">
+												<option value="">Airline address</option>
+												<option value="0xf17f52151EbEF6C7334FAD080c5704D77216b732">0xf17f52151EbEF6C7334FAD080c5704D77216b732</option>
+												<option value="0xC5fdf4076b8F3A5357c5E395ab970B5B54098Fef">0xC5fdf4076b8F3A5357c5E395ab970B5B54098Fef</option>
+												<option value="0x821aEa9a577a9b44299B9c15c88cf3087F3b5544">0x821aEa9a577a9b44299B9c15c88cf3087F3b5544</option>
+												<option value="0x0d1d4e623D10F9FBA5Db95830F7d3839406C6AF2">0x0d1d4e623D10F9FBA5Db95830F7d3839406C6AF2</option>
+												<option value="0x2932b7A2355D6fecc4b5c0B6BD44cC31df247a2e">0x2932b7A2355D6fecc4b5c0B6BD44cC31df247a2e</option>
+											</select>
 										</div>
 										<!-- Break -->
 										<div class="col-12">
@@ -55,7 +62,14 @@
 								<form method="post" action="#" id="vote-airline-form">
 									<div class="row gtr-uniform">
 										<div class="col-6 col-12-xsmall">
-											<input type="text" name="vote-airline-address" id="vote-airline-address" value="" placeholder="Address" />
+											<select name="vote-airline-address" id="vote-airline-address">
+												<option value="">Airline address</option>
+												<option value="0xf17f52151EbEF6C7334FAD080c5704D77216b732">0xf17f52151EbEF6C7334FAD080c5704D77216b732</option>
+												<option value="0xC5fdf4076b8F3A5357c5E395ab970B5B54098Fef">0xC5fdf4076b8F3A5357c5E395ab970B5B54098Fef</option>
+												<option value="0x821aEa9a577a9b44299B9c15c88cf3087F3b5544">0x821aEa9a577a9b44299B9c15c88cf3087F3b5544</option>
+												<option value="0x0d1d4e623D10F9FBA5Db95830F7d3839406C6AF2">0x0d1d4e623D10F9FBA5Db95830F7d3839406C6AF2</option>
+												<option value="0x2932b7A2355D6fecc4b5c0B6BD44cC31df247a2e">0x2932b7A2355D6fecc4b5c0B6BD44cC31df247a2e</option>
+											</select>
 										</div>
 										<div class="col-6 col-12-xsmall">
 											<input type="checkbox" id="vote-airline-no" name="vote-airline-no">
@@ -88,11 +102,24 @@
 								<form method="post" action="#" id="register-flight-form">
 									<div class="row gtr-uniform">
 										<div class="col-6 col-12-xsmall">
-											<input type="text" name="register-flight-number" id="register-flight-number" value="" placeholder="Flight number" />
+											<select name="register-flight-number" id="register-flight-number">
+												<option value="">Flight number</option>
+												<option value="ND1309">ND1309</option>
+												<option value="BTC123">BTC123</option>
+												<option value="ETH456">ETH456</option>
+												<option value="IDKFA1">IDKFA1</option>
+												<option value="JK1337">JK1337</option>
+											</select>
 										</div>
 										<div class="col-6 col-12-xsmall">
-											<input type="text" name="register-flight-time" id="register-flight-time" value="" placeholder="Date and time *" />
-											* e.g. 2021-07-20 13:30
+											<select name="register-flight-time" id="register-flight-time">
+												<option value="">Date and time</option>
+												<option value="2021-07-15 08:00">2021-07-15 08:00</option>
+												<option value="2021-07-15 12:30">2021-07-15 12:30</option>
+												<option value="2021-07-20 06:00">2021-07-20 06:00</option>
+												<option value="2021-07-25 09:15">2021-07-25 09:15</option>
+												<option value="2021-07-25 18:20">2021-07-25 18:20</option>
+											</select>
 										</div>
 										<!-- Break -->
 										<div class="col-12">
@@ -107,14 +134,34 @@
 								<form method="post" action="#" id="fetch-flight-form">
 									<div class="row gtr-uniform">
 										<div class="col-4 col-12-xsmall">
-											<input type="text" name="fetch-flight-address" id="fetch-flight-address" value="" placeholder="Airline address" />
+											<select name="fetch-flight-address" id="fetch-flight-address">
+												<option value="">Airline address</option>
+												<option value="0xf17f52151EbEF6C7334FAD080c5704D77216b732">0xf17f52151EbEF6C7334FAD080c5704D77216b732</option>
+												<option value="0xC5fdf4076b8F3A5357c5E395ab970B5B54098Fef">0xC5fdf4076b8F3A5357c5E395ab970B5B54098Fef</option>
+												<option value="0x821aEa9a577a9b44299B9c15c88cf3087F3b5544">0x821aEa9a577a9b44299B9c15c88cf3087F3b5544</option>
+												<option value="0x0d1d4e623D10F9FBA5Db95830F7d3839406C6AF2">0x0d1d4e623D10F9FBA5Db95830F7d3839406C6AF2</option>
+												<option value="0x2932b7A2355D6fecc4b5c0B6BD44cC31df247a2e">0x2932b7A2355D6fecc4b5c0B6BD44cC31df247a2e</option>
+											</select>
 										</div>
 										<div class="col-4 col-12-xsmall">
-											<input type="text" name="fetch-flight-number" id="fetch-flight-number" value="" placeholder="Flight number" />
+											<select name="fetch-flight-number" id="fetch-flight-number">
+												<option value="">Flight number</option>
+												<option value="ND1309">ND1309</option>
+												<option value="BTC123">BTC123</option>
+												<option value="ETH456">ETH456</option>
+												<option value="IDKFA1">IDKFA1</option>
+												<option value="JK1337">JK1337</option>
+											</select>
 										</div>
 										<div class="col-4 col-12-xsmall">
-											<input type="text" name="fetch-flight-time" id="fetch-flight-time" value="" placeholder="Date and time *" />
-											* e.g. 2021-07-20 13:30
+											<select name="fetch-flight-time" id="fetch-flight-time">
+												<option value="">Date and time</option>
+												<option value="2021-07-15 08:00">2021-07-15 08:00</option>
+												<option value="2021-07-15 12:30">2021-07-15 12:30</option>
+												<option value="2021-07-20 06:00">2021-07-20 06:00</option>
+												<option value="2021-07-25 09:15">2021-07-25 09:15</option>
+												<option value="2021-07-25 18:20">2021-07-25 18:20</option>
+											</select>
 										</div>
 										<!-- Break -->
 										<div class="col-12">
@@ -140,17 +187,37 @@
 								<form method="post" action="#" id="buy-insurance-form">
 									<div class="row gtr-uniform">
 										<div class="col-3 col-12-xsmall">
-											<input type="text" name="buy-insurance-address" id="buy-insurance-address" value="" placeholder="Airline address" />
+											<select name="buy-insurance-address" id="buy-insurance-address">
+												<option value="">Airline address</option>
+												<option value="0xf17f52151EbEF6C7334FAD080c5704D77216b732">0xf17f52151EbEF6C7334FAD080c5704D77216b732</option>
+												<option value="0xC5fdf4076b8F3A5357c5E395ab970B5B54098Fef">0xC5fdf4076b8F3A5357c5E395ab970B5B54098Fef</option>
+												<option value="0x821aEa9a577a9b44299B9c15c88cf3087F3b5544">0x821aEa9a577a9b44299B9c15c88cf3087F3b5544</option>
+												<option value="0x0d1d4e623D10F9FBA5Db95830F7d3839406C6AF2">0x0d1d4e623D10F9FBA5Db95830F7d3839406C6AF2</option>
+												<option value="0x2932b7A2355D6fecc4b5c0B6BD44cC31df247a2e">0x2932b7A2355D6fecc4b5c0B6BD44cC31df247a2e</option>
+											</select>
 										</div>
 										<div class="col-3 col-12-xsmall">
-											<input type="text" name="buy-insurance-number" id="buy-insurance-number" value="" placeholder="Flight number" />
+											<select name="buy-insurance-number" id="buy-insurance-number">
+												<option value="">Flight number</option>
+												<option value="ND1309">ND1309</option>
+												<option value="BTC123">BTC123</option>
+												<option value="ETH456">ETH456</option>
+												<option value="IDKFA1">IDKFA1</option>
+												<option value="JK1337">JK1337</option>
+											</select>
 										</div>
 										<div class="col-3 col-12-xsmall">
-											<input type="text" name="buy-insurance-time" id="buy-insurance-time" value="" placeholder="Date and time *" />
-											* e.g. 2021-07-20 13:30
+											<select name="buy-insurance-time" id="buy-insurance-time">
+												<option value="">Date and time</option>
+												<option value="2021-07-15 08:00">2021-07-15 08:00</option>
+												<option value="2021-07-15 12:30">2021-07-15 12:30</option>
+												<option value="2021-07-20 06:00">2021-07-20 06:00</option>
+												<option value="2021-07-25 09:15">2021-07-25 09:15</option>
+												<option value="2021-07-25 18:20">2021-07-25 18:20</option>
+											</select>
 										</div>
 										<div class="col-3 col-12-xsmall">
-											<input type="text" name="buy-insurance-amount" id="buy-insurance-amount" value="" placeholder="Amount" />
+											<input type="text" name="buy-insurance-amount" id="buy-insurance-amount" value="" placeholder="Amount in ETH" />
 										</div>
 										<!-- Break -->
 										<div class="col-12">
@@ -161,8 +228,8 @@
 									</div>
 								</form>
 
-								<h3>Withdraw after delays</h3>
-								<a href="#" class="button primary" onclick="App.withdraw()">Withdraw</a>
+								<h3>Get payout after delayed flight</h3>
+								<a href="#" class="button primary" onclick="App.getPayout()">Get it</a>
 
 							</div>
 						</section>

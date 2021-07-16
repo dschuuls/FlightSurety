@@ -67,3 +67,4 @@ typings/
 
 .idea
 package-lock.json
+ganache-db

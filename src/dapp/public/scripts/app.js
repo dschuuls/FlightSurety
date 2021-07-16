@@ -96,6 +96,18 @@ App = {
             console.log(`voteForAirline('${App.voteAirlineAddress}', '${App.voteAirlineApprove}', {from: '${App.metamaskAccountID}'});`);
             App.handleButtonClick(event, 4);
         };
+
+        document.getElementById('buy-insurance-form').onsubmit = (event) => {
+            event.preventDefault();
+            App.buyInsuranceAddress = document.getElementById('buy-insurance-address').value;
+            App.buyInsuranceNumber = document.getElementById('buy-insurance-number').value;
+            let time = document.getElementById('buy-insurance-time').value;
+            App.buyInsuranceTime = Math.floor(Date.parse(time) / 1000);
+            let amount = document.getElementById('buy-insurance-amount').value;
+            App.buyInsuranceAmount = web3.utils.toWei(amount, 'ether');
+            console.log(`buyInsurance('${App.buyInsuranceAddress}', '${App.buyInsuranceNumber}', '${App.buyInsuranceTime}', {from: '${App.metamaskAccountID}', value: '${App.buyInsuranceAmount}'});`);
+            App.handleButtonClick(event, 5);
+        };
     },
 
     handleButtonClick: async function(event, idx) {
@@ -113,6 +125,9 @@ App = {
                 break;
             case 4:
                 await App.voteForAirline(event);
+                break;
+            case 5:
+                await App.buyInsurance(event);
         }
     },
 
@@ -128,31 +143,6 @@ App = {
             console.log('registerAirline SUCCESS:', result);
         }).catch(function(err) {
             console.log('registerAirline FAILED:', err.message);
-        });
-    },
-
-    fundAirline: function() {
-        App.contracts.FlightSurety.deployed().then(function(instance) {
-            return instance.fund({ from: App.metamaskAccountID, value: web3.utils.toWei('10', 'ether') });
-        }).then(function(result) {
-            console.log('fundAirline SUCCESS:', result);
-        }).catch(function(err) {
-            console.log('fundAirline FAILED:', err.message);
-        });
-    },
-
-    voteForAirline: function(event) {
-        event.preventDefault();
-        App.contracts.FlightSurety.deployed().then(function(instance) {
-            return instance.vote(
-                App.voteAirlineAddress,
-                App.voteAirlineApprove,
-                { from: App.metamaskAccountID }
-            );
-        }).then(function(result) {
-            console.log('voteForAirline SUCCESS:', result);
-        }).catch(function(err) {
-            console.log('voteForAirline FAILED:', err.message);
         });
     },
 
@@ -184,6 +174,60 @@ App = {
             console.log('fetchFlightStatus SUCCESS:', result);
         }).catch(function(err) {
             console.log('fetchFlightStatus FAILED:', err.message);
+        });
+    },
+
+    voteForAirline: function(event) {
+        event.preventDefault();
+        App.contracts.FlightSurety.deployed().then(function(instance) {
+            return instance.voteForAirline(
+                App.voteAirlineAddress,
+                App.voteAirlineApprove,
+                { from: App.metamaskAccountID }
+            );
+        }).then(function(result) {
+            console.log('voteForAirline SUCCESS:', result);
+        }).catch(function(err) {
+            console.log('voteForAirline FAILED:', err.message);
+        });
+    },
+
+    buyInsurance: function(event) {
+        event.preventDefault();
+        App.contracts.FlightSurety.deployed().then(function(instance) {
+            return instance.buyInsurance(
+                App.buyInsuranceAddress,
+                App.buyInsuranceNumber,
+                App.buyInsuranceTime,
+                {
+                    from: App.metamaskAccountID,
+                    value: App.buyInsuranceAmount
+                }
+            );
+        }).then(function(result) {
+            console.log('buyInsurance SUCCESS:', result);
+        }).catch(function(err) {
+            console.log('buyInsurance FAILED:', err.message);
+        });
+    },
+
+    fundAirline: function() {
+        App.contracts.FlightSurety.deployed().then(function(instance) {
+            return instance.fundAirline({ from: App.metamaskAccountID, value: web3.utils.toWei('10', 'ether') });
+        }).then(function(result) {
+            console.log('fundAirline SUCCESS:', result);
+        }).catch(function(err) {
+            console.log('fundAirline FAILED:', err.message);
+        });
+    },
+
+    getPayout: function() {
+        App.contracts.FlightSurety.deployed().then(function(instance) {
+            return instance.getPayout({ from: App.metamaskAccountID });
+        }).then(function(result) {
+            console.log('getPayout SUCCESS:', result);
+        }).catch(function(err) {
+            console.log('getPayout FAILED:', err.message);
         });
     }
 };

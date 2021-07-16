@@ -1,22 +1,24 @@
-// import JSON files
-const contractJson = require('../../build/contracts/FlightSuretyApp.json');
-const config = require('./config.json')['localhost'];
-
 // import node packages
 const TruffleContract = require("@truffle/contract");
 const WalletProvider = require("@truffle/hdwallet-provider");
 const Web3 = require('web3');
 
+// import JSON files
+const contractJson = require('../../build/contracts/FlightSuretyApp.json');
+const config = require('./config.json')['localhost'];
+
 // setup some constants
+const FORCE_LATE_AIRLINE = false;
 const MNEMONIC = "candy maple cake sugar pudding cream honey rich smooth crumble sweet treat";
-const NUM_ORACLES = 5;
-const GAS_LIMIT = "200000";
+const NUM_ORACLES = 99;
 
 // variables
-let appContract;
-let oracles = [];
+let app;
+let truffleContract;
+let web3ethContract;
 let walletProvider;
-let startingBlock = 0;
+let oracles = [];
+let block = 0;
 let web3;
 
 start();
@@ -24,20 +26,32 @@ start();
 async function start() {
     await init();
     listenForOracleRequests();
+    listenForFlightStatusInfo();
 }
 
 async function init() {
-    console.log('initializing ...\n');
+
+    console.log('initializing ...');
+
     walletProvider = new WalletProvider(MNEMONIC, config.url, 0, 100);
-    web3 = new Web3(new Web3.providers.WebsocketProvider(config.url.replace('http', 'ws')));
-    appContract = new web3.eth.Contract(contractJson.abi, config.appAddress);
-    startingBlock = await getBlockNumber();
+
+    let websocketProvider = new Web3.providers.WebsocketProvider(config.url.replace('http', 'ws'));
+    web3 = new Web3(websocketProvider);
+    web3ethContract = new web3.eth.Contract(contractJson.abi, config.appAddress);
+
+    let httpProvider = new Web3.providers.HttpProvider(config.url);
+    truffleContract = TruffleContract(contractJson);
+    truffleContract.setProvider(httpProvider);
+
+    app = await truffleContract.deployed();
+
+    block = await getBlockNumber();
+
     await registerOracles();
 }
 
-function getRandomStatus() {
-    let min = 0, max = 5;
-    return Math.floor(Math.random() * (max - min + 1) + min) * 10;
+function getRandomNumber(min, max) {
+    return Math.floor(Math.random() * (max - min + 1) + min);
 }
 
 async function getBlockNumber() {
@@ -50,52 +64,69 @@ async function getBlockNumber() {
 async function registerOracles() {
 
     let adr = walletProvider.addresses;
-    let fee = await appContract.methods.REGISTRATION_FEE().call({from: adr[0]});
+    let fee = await app.REGISTRATION_FEE();
 
     for (let i = 1; i <= NUM_ORACLES; i++) {
 
-        let gas = "0";
-
-        await appContract.methods.registerOracle().estimateGas({from: adr[i], value: fee})
-            .then((gasAmount) => {
-                gas = gasAmount;
-                console.log('estimated gas:', gasAmount);
-            })
-            .catch((e) => { console.log('could not estimate gas'); });
-
         let registered = false;
 
-        await appContract.methods.registerOracle().send({from: adr[i], value: fee, gas: GAS_LIMIT})
-            .then((receipt) => {
-                registered = true;
-                console.log(`oracle #${i} registered, gas used: ${receipt.gasUsed}`);
-            })
-            .catch((e) => { console.log('could not register oracle #' + i); });
+        // this is strange: invoking registerOracle() often results in the transactions to be
+        // reverted. this was first noticed when it happened in the oracle tests. it seems to
+        // get better when ganache-cli is left unused for a couple of minutes: when ganache-cli
+        // is started and time passes between deploying the contracts and starting the server,
+        // the reverted transactions are far less.
+        // this needs further investigation. for now here is a do ... while as a work-around.
+        do {
+            await app.registerOracle({from: adr[i], value: fee, gas: '200000'})
+                .then((result) => {
+                    registered = true;
+                    console.log(`oracle #${i} registered, gas used: ${result.receipt.gasUsed}`);
+                })
+                .catch((e) => {
+                    console.log(`tx revert, couldn't register oracle #${i}, will retry...`);
+                });
+        } while (!registered);
 
-        if (!registered) continue;
-
-        await appContract.methods.getMyIndexes().call({from: adr[i]})
+        await app.getMyIndexes({from: adr[i]})
             .then((result) => {
-                console.log(`   indexes: ${result[0]}, ${result[1]}, ${result[2]}, address: ${adr[i]}`);
-                oracles.push({address: adr[i], indexes: [result[0], result[1], result[2]]});
+                let indexes = [
+                    parseInt(result[0].toString()),
+                    parseInt(result[1].toString()),
+                    parseInt(result[2].toString())
+                ];
+                let newOracle = {address: adr[i], indexes: indexes};
+                oracles.push(newOracle);
+                console.log(newOracle);
             })
-            .catch((e) => { console.log('   could not get the indexes'); });
+            .catch((e) => {
+                console.log('   could not get the indexes');
+            });
     }
-
-    let failed = NUM_ORACLES - oracles.length;
-    if (failed === 0) console.log(`\n${NUM_ORACLES} oracles registered successfully\n`);
-    else console.log(`\n${failed} oracles failed to register, you might want to restart the server\n`);
 }
 
 function listenForOracleRequests() {
-    appContract.events.OracleRequest({fromBlock: startingBlock})
+    web3ethContract.events.OracleRequest({fromBlock: block})
         .on("connected", (subId) => {
             console.log(`listening for 'OracleRequest' events, subscription ID: ${subId}`);
         })
         .on('data', (event) => {
             let {index, airline, flight, timestamp} = event.returnValues;
             console.log('oracle request received:', index, airline, flight, timestamp);
-            processOracleRequest(index, airline, flight, timestamp);
+            processOracleRequest(parseInt(index), airline, flight, timestamp);
+        })
+        .on('error', (error, receipt) => {
+            console.log('error:', error);
+        });
+}
+
+function listenForFlightStatusInfo() {
+    web3ethContract.events.FlightStatusInfo({fromBlock: block})
+        .on("connected", (subId) => {
+            console.log(`listening for 'FlightStatusInfo' events, subscription ID: ${subId}`);
+        })
+        .on('data', (event) => {
+            let {airline, flight, timestamp, status} = event.returnValues;
+            console.log('flight status info received:', airline, flight, timestamp, status);
         })
         .on('error', (error, receipt) => {
             console.log('error:', error);
@@ -104,16 +135,20 @@ function listenForOracleRequests() {
 
 function processOracleRequest(index, airline, flight, timestamp) {
     let matching = oracles.filter(oracle => { return oracle.indexes.includes(index); });
-    console.log(`found ${matching.length} oracles with matching index`);
+    console.log(`found ${matching.length} oracles with matching index ${index}`);
+    let status1 = getRandomNumber(0, 5) * 10;
+    let status2 = getRandomNumber(0, 5) * 10;
     matching.forEach(oracle => {
-        submitOracleResponse(oracle.address, index, airline, flight, timestamp, getRandomStatus());
+        let status = FORCE_LATE_AIRLINE ? 20 : (getRandomNumber(0, 1) ? status1 : status2);
+        submitOracleResponse(oracle.address, index, airline, flight, timestamp, status);
     });
 }
 
 async function submitOracleResponse(from, index, airline, flight, timestamp, statusCode) {
-    let options = {from: from, gas: GAS_LIMIT};
-    // let options = {from: from};
+    let options = {from: from, gas: '200000'};
     console.log('sending response:', from, '=>', statusCode);
-    await appContract.methods.submitOracleResponse(index, airline, flight, timestamp, statusCode).send(options)
-        .catch((e) => { console.log('d\'oh, that failed'); });
+    await web3ethContract.methods.submitOracleResponse(index, airline, flight, timestamp, statusCode).send(options)
+        .catch((e) => {
+            console.log('.: SEND FAILED :.', from, '=>', statusCode);
+        });
 }

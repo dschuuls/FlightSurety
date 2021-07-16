@@ -132,13 +132,13 @@ contract('FlightSurety Tests', async (accounts) => {
 
         // ACT
         try {
-            await config.flightSuretyApp.fund({from: config.firstAirline, value: amountTooLow});
+            await config.flightSuretyApp.fundAirline({from: config.firstAirline, value: amountTooLow});
         } catch (e) {
             reverted = true;
         }
 
         let try1 = await config.flightSuretyData.isFunded.call(config.firstAirline);
-        await config.flightSuretyApp.fund({from: config.firstAirline, value: correctAmount});
+        await config.flightSuretyApp.fundAirline({from: config.firstAirline, value: correctAmount});
         let try2 = await config.flightSuretyData.isFunded.call(config.firstAirline);
 
         // ASSERT
@@ -208,7 +208,7 @@ contract('FlightSurety Tests', async (accounts) => {
 
         // ACT
         try {
-            await config.flightSuretyApp.vote(airline5, true, {from: airline2}); // airline 2 is not funded yet
+            await config.flightSuretyApp.voteForAirline(airline5, true, {from: airline2}); // airline 2 is not funded yet
         } catch (e) {
             reverted = true;
         }
@@ -226,8 +226,8 @@ contract('FlightSurety Tests', async (accounts) => {
 
         // ACT
         try {
-            await config.flightSuretyApp.vote(airline5, true, {from: config.firstAirline});
-            await config.flightSuretyApp.vote(airline5, false, {from: config.firstAirline});
+            await config.flightSuretyApp.voteForAirline(airline5, true, {from: config.firstAirline});
+            await config.flightSuretyApp.voteForAirline(airline5, false, {from: config.firstAirline});
         } catch (e) {
             reverted = true;
         }
@@ -248,14 +248,14 @@ contract('FlightSurety Tests', async (accounts) => {
 
         // ACT
 
-        await config.flightSuretyApp.fund({from: airline2, value: eth});
-        await config.flightSuretyApp.fund({from: airline3, value: eth});
-        await config.flightSuretyApp.fund({from: airline4, value: eth});
+        await config.flightSuretyApp.fundAirline({from: airline2, value: eth});
+        await config.flightSuretyApp.fundAirline({from: airline3, value: eth});
+        await config.flightSuretyApp.fundAirline({from: airline4, value: eth});
 
         // airline 1 already did vote with 'true'
-        await config.flightSuretyApp.vote(airline5, false, {from: airline2});
-        await config.flightSuretyApp.vote(airline5, false, {from: airline3});
-        await config.flightSuretyApp.vote(airline5, false, {from: airline4});
+        await config.flightSuretyApp.voteForAirline(airline5, false, {from: airline2});
+        await config.flightSuretyApp.voteForAirline(airline5, false, {from: airline3});
+        await config.flightSuretyApp.voteForAirline(airline5, false, {from: airline4});
 
         // ASSERT
         config.flightSuretyData.getPastEvents("AirlineRejected", {fromBlock: 0, toBlock: "latest"})
@@ -276,9 +276,9 @@ contract('FlightSurety Tests', async (accounts) => {
 
         let numBefore = await config.flightSuretyData.approvedAirlinesCount.call();
 
-        await config.flightSuretyApp.vote(airline6, true, {from: airline1});
-        await config.flightSuretyApp.vote(airline6, false, {from: airline2});
-        await config.flightSuretyApp.vote(airline6, true, {from: airline3});
+        await config.flightSuretyApp.voteForAirline(airline6, true, {from: airline1});
+        await config.flightSuretyApp.voteForAirline(airline6, false, {from: airline2});
+        await config.flightSuretyApp.voteForAirline(airline6, true, {from: airline3});
 
         let numAfter = await config.flightSuretyData.approvedAirlinesCount.call();
 
@@ -288,6 +288,94 @@ contract('FlightSurety Tests', async (accounts) => {
 
         assert.equal(numBefore, 4, '4 airlines should be approved by now');
         assert.equal(numAfter, 5, 'airline 6 should be approved now also');
+
+    });
+
+    it('(flight) an airline won\'t be able to register a flight until it\'s funded', async () => {
+
+        // ARRANGE
+        let reverted = false;
+        let airline = accounts[6];
+        let flight = 'ND1309'; // Course number
+        let timestamp = 1656633600; // Friday, 1 July 2022 00:00:00
+
+        // ACT
+
+        try {
+            await config.flightSuretyApp.registerFlight(flight, timestamp, {from: airline});
+        } catch(e) {
+            reverted = true;
+        }
+
+        let regBefore = await config.flightSuretyData.isRegisteredFlight(airline, flight, timestamp);
+
+        await config.flightSuretyApp.fundAirline({from: airline, value: web3.utils.toWei('10', 'ether')});
+        await config.flightSuretyApp.registerFlight(flight, timestamp, {from: airline});
+
+        let regAfter = await config.flightSuretyData.isRegisteredFlight(airline, flight, timestamp);
+
+        // ASSERT
+        assert.equal(reverted, true, 'registering from unfunded airline should fail');
+        assert.equal(regBefore, false, 'flight should not be registered by unfunded airline');
+        assert.equal(regAfter, true, 'flight should be registered after funding');
+
+    });
+
+    it('(flight) a passenger can\'t buy insurance for a flight for more than 1 ETH', async () => {
+
+        // ARRANGE
+        let passenger = accounts[7];
+        let reverted = false;
+        let airline = accounts[6];
+        let flight = 'ND1309'; // Course number
+        let timestamp = 1656633600; // Friday, 1 July 2022 00:00:00
+
+        // ACT
+
+        try {
+            await config.flightSuretyApp.buyInsurance(airline, flight, timestamp, {from: passenger, value: web3.utils.toWei('1.5', 'ether')});
+        } catch(e) {
+            reverted = true;
+        }
+
+        // ASSERT
+        assert.equal(reverted, true, 'buying insurance for more than 1 ETH should fail');
+
+    });
+
+    it('(flight) a passenger can buy insurance for a flight for 1 ETH or less', async () => {
+
+        // ARRANGE
+        let passenger = accounts[7];
+        let airline = accounts[6];
+        let flight = 'ND1309'; // Course number
+        let timestamp = 1656633600; // Friday, 1 July 2022 00:00:00
+        let amount = '0.8';
+        let gasPrice = await web3.eth.getGasPrice();
+
+        // ACT
+        let balanceBefore = await web3.eth.getBalance(passenger);
+        let tx = await config.flightSuretyApp.buyInsurance(airline, flight, timestamp, {from: passenger, value: web3.utils.toWei(amount, 'ether')});
+        let balanceAfter = await web3.eth.getBalance(passenger);
+
+        // ASSERT
+        assert.equal(balanceAfter, balanceBefore - web3.utils.toWei(amount, 'ether') - (tx.receipt.gasUsed * gasPrice), 'account balance doesn\'t sum up correctly');
+
+    });
+
+    it('(flight) can generate a request for oracles to fetch flight information', async () => {
+
+        // ARRANGE
+        let airline = accounts[6];
+        let flight = 'ND1309'; // Course number
+        let timestamp = 1656633600; // Friday, 1 July 2022 00:00:00
+
+        // ACT
+        await config.flightSuretyApp.fetchFlightStatus(airline, flight, timestamp, {from: config.owner});
+
+        // ASSERT
+        config.flightSuretyApp.getPastEvents("OracleRequest", {fromBlock: 0, toBlock: "latest"})
+            .then(log => assert.equal(log[0].event, 'OracleRequest', 'Invalid event emitted'));
 
     });
 });
