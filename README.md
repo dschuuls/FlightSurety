@@ -1,52 +1,77 @@
-# FlightSurety
+# FlightSurety by Julian Knab
 
 FlightSurety is a sample application project for Udacity's Blockchain course.
 
 ## Install
 
-This repository contains Smart Contract code in Solidity (using Truffle), tests (also using Truffle), dApp scaffolding (using HTML, CSS and JS) and server app scaffolding.
+This repository contains Smart Contract code in Solidity (using Truffle), tests (also using Truffle), dApp (using HTML, CSS and JS) and server app.
 
 To install, download or clone the repo, then:
 
 `npm install`
-`truffle compile`
 
-## Develop Client
+## Unit Tests
 
-To run truffle tests:
+To run airline and flight tests:
 
-`truffle test ./test/flightSurety.js`
-`truffle test ./test/oracles.js`
+`npm run test`
 
-To use the dapp:
+For oracle tests start Ganache first:
 
-`truffle migrate`
+`npm run ganache`
+
+Then run oracle tests:
+
+`npm run test:oracles`
+
+## Deployment
+
+Make sure Ganache is running.
+
+Start if necessary:
+
+`npm run ganache`
+
+Then deploy:
+
+`npm run deploy`
+
+## Server
+
+Make sure Ganache is running and everything is deployed.
+
+Then start the server:
+
+`npm run server`
+
+## dApp
+
+Make sure Ganache is running, everything is deployed and you started the server.
+
+Then start the server for the dApp:
+
 `npm run dapp`
 
-To view dapp:
+...and visit
 
 `http://localhost:8000`
 
-## Develop Server
+in your browser.
 
-`npm run server`
-`truffle test ./test/oracles.js`
+The dApp is verbose in the console of the developer tools only.
 
-## Deploy
+Refresh the page after selecting another account in MetaMask.
 
-To build dapp for prod:
-`npm run dapp:prod`
+## Other scripts
 
-Deploy the contents of the ./dapp folder
+### Console
 
+Will run the Truffle console:
 
-## Resources
+`npm run console`
 
-* [How does Ethereum work anyway?](https://medium.com/@preethikasireddy/how-does-ethereum-work-anyway-22d1df506369)
-* [BIP39 Mnemonic Generator](https://iancoleman.io/bip39/)
-* [Truffle Framework](http://truffleframework.com/)
-* [Ganache Local Blockchain](http://truffleframework.com/ganache/)
-* [Remix Solidity IDE](https://remix.ethereum.org/)
-* [Solidity Language Reference](http://solidity.readthedocs.io/en/v0.4.24/)
-* [Ethereum Blockchain Explorer](https://etherscan.io/)
-* [Web3Js Reference](https://github.com/ethereum/wiki/wiki/JavaScript-API)
+### Reset
+
+Will delete the build and ganache-db folders:
+
+`npm run reset`

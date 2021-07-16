@@ -388,9 +388,12 @@ contract FlightSuretyApp is Ownable, Pausable {
     )
     external
     {
-        require((oracles[msg.sender].indexes[0] == index) || (oracles[msg.sender].indexes[1] == index) || (oracles[msg.sender].indexes[2] == index), "Index does not match oracle request");
+        require(oracles[msg.sender].isRegistered, "not registered as an oracle");
+        require((oracles[msg.sender].indexes[0] == index) || (oracles[msg.sender].indexes[1] == index) || (oracles[msg.sender].indexes[2] == index), "sending oracle's indexes not matching index in response");
+
         bytes32 key = keccak256(abi.encodePacked(index, airline, flight, timestamp));
-        require(oracleResponses[key].isOpen, "Flight or timestamp do not match oracle request");
+        require(oracleResponses[key].isOpen, "there's no open oracle request with these args");
+
         oracleResponses[key].responses[statusCode].push(msg.sender);
         emit OracleReport(airline, flight, timestamp, statusCode);
 

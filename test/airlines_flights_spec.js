@@ -1,4 +1,4 @@
-var Test = require('./config.js');
+var Test = require('./_config.js');
 
 contract('FlightSurety Tests', async (accounts) => {
 
@@ -59,7 +59,7 @@ contract('FlightSurety Tests', async (accounts) => {
         assert.equal(reverted, true, "Access not blocked for requireIsOperational");
 
         // Set it back for other tests to work
-        await config.flightSuretyData.setOperatingStatus(true);
+        await config.flightSuretyData.setOperatingStatus(true, {from: config.owner});
 
     });
 
@@ -258,7 +258,7 @@ contract('FlightSurety Tests', async (accounts) => {
         await config.flightSuretyApp.voteForAirline(airline5, false, {from: airline4});
 
         // ASSERT
-        config.flightSuretyData.getPastEvents("AirlineRejected", {fromBlock: 0, toBlock: "latest"})
+        await config.flightSuretyData.getPastEvents("AirlineRejected", {fromBlock: 0, toBlock: "latest"})
             .then(log => assert.equal(log[0].event, 'AirlineRejected', 'Invalid event emitted'));
 
     });
@@ -283,7 +283,7 @@ contract('FlightSurety Tests', async (accounts) => {
         let numAfter = await config.flightSuretyData.approvedAirlinesCount.call();
 
         // ASSERT
-        config.flightSuretyData.getPastEvents("AirlineApproved", {fromBlock: 0, toBlock: "latest"})
+        await config.flightSuretyData.getPastEvents("AirlineApproved", {fromBlock: 0, toBlock: "latest"})
             .then(log => assert.equal(log[0].event, 'AirlineApproved', 'Invalid event emitted'));
 
         assert.equal(numBefore, 4, '4 airlines should be approved by now');
@@ -374,7 +374,7 @@ contract('FlightSurety Tests', async (accounts) => {
         await config.flightSuretyApp.fetchFlightStatus(airline, flight, timestamp, {from: config.owner});
 
         // ASSERT
-        config.flightSuretyApp.getPastEvents("OracleRequest", {fromBlock: 0, toBlock: "latest"})
+        await config.flightSuretyApp.getPastEvents("OracleRequest", {fromBlock: 0, toBlock: "latest"})
             .then(log => assert.equal(log[0].event, 'OracleRequest', 'Invalid event emitted'));
 
     });

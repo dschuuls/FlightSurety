@@ -10,11 +10,12 @@
   "scripts": {
     "console": "truffle console --network udacity",
     "dapp": "node src/dapp/server.js",
-    "deploy": "truffle deploy --reset --network udacity && cp build/contracts/FlightSuretyApp.json src/dapp/public/contracts",
-    "ganache": "ganache-cli -a 100 -m 'candy maple cake sugar pudding cream honey rich smooth crumble sweet treat' --networkId 100 --db ganache-db",
+    "deploy": "truffle deploy --network udacity && cp build/contracts/FlightSuretyApp.json src/dapp/public/contracts",
+    "ganache": "ganache-cli --db ganache-db -a 100 -m 'candy maple cake sugar pudding cream honey rich smooth crumble sweet treat'",
     "reset":  "rm -rf build ganache-db",
     "server": "node src/server/server.js",
-    "test": "truffle test test/airlines_flights_spec.js"
+    "test": "truffle test test/airlines_flights_spec.js",
+    "test:oracles": "truffle test test/oracles_test_spec.js --network udacity"
   },
   "author": "Julian Knab <julian.knab@gmail.com>",
   "dependencies": {
